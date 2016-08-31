@@ -15,6 +15,7 @@ type Alarm struct {
 	started *sync.WaitGroup
 }
 
+//NewAlarm creates an alarm for the given duration
 func NewAlarm(t time.Duration) (a Alarm, err error) {
 	a.p, err = getMyProcess()
 	if err != nil {
@@ -25,7 +26,7 @@ func NewAlarm(t time.Duration) (a Alarm, err error) {
 	return a, nil
 }
 
-//GetMyProcess through os.Getpid
+//getMyProcess through os.Getpid
 func getMyProcess() (p *os.Process, err error) {
 	p, err = os.FindProcess(os.Getpid())
 	if err != nil {
@@ -34,7 +35,7 @@ func getMyProcess() (p *os.Process, err error) {
 	return p, nil
 }
 
-//AlarmAfter a duration or abort on a channel input
+//alarmAfter a duration or abort on a channel input
 func (a Alarm) alarmAfter() {
 	timer := time.NewTimer(a.t)
 	defer timer.Stop()
@@ -50,16 +51,19 @@ func (a Alarm) alarmAfter() {
 	return
 }
 
+//Start the countdown till an alarm is raised
 func (a Alarm) Start() {
 	a.started.Add(1)
 	go a.alarmAfter()
 	a.started.Wait()
 }
 
+//Stop the countdown for the alarm
 func (a Alarm) Stop() {
 	a.abort <- struct{}{}
 }
 
+//WriteLockWithTimeout write lock fd but give up after t
 func WriteLockWithTimeout(fd *os.File, t time.Duration) (err error) {
 	a, err := NewAlarm(t)
 	if err != nil {
@@ -74,6 +78,8 @@ func WriteLockWithTimeout(fd *os.File, t time.Duration) (err error) {
 	return err
 
 }
+
+//WriteUnLockWithTimeout un-lock fd but give up after t
 func WriteUnLockWithTimeout(fd *os.File, t time.Duration) (err error) {
 	a, err := NewAlarm(t)
 	if err != nil {
