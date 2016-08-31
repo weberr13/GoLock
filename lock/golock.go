@@ -1,18 +1,17 @@
 package golock
 
 import (
+	"fmt"
 	"os"
-	"sync"
 	"syscall"
 	"time"
 )
 
 //Alarm will raise a SIGALRM if not stopped in time
 type Alarm struct {
-	t       time.Duration
-	abort   chan struct{}
-	p       *os.Process
-	started *sync.WaitGroup
+	t     time.Duration
+	abort chan struct{}
+	p     *os.Process
 }
 
 //NewAlarm creates an alarm for the given duration
@@ -21,8 +20,8 @@ func NewAlarm(t time.Duration) (a Alarm, err error) {
 	if err != nil {
 		return a, err
 	}
+	a.t = t
 	a.abort = make(chan struct{}, 1)
-	a.started = &sync.WaitGroup{}
 	return a, nil
 }
 
@@ -39,10 +38,10 @@ func getMyProcess() (p *os.Process, err error) {
 func (a Alarm) alarmAfter() {
 	timer := time.NewTimer(a.t)
 	defer timer.Stop()
-	a.started.Done()
 	for {
 		select {
 		case <-timer.C:
+			fmt.Println("got timeout, alarm to giveup")
 			a.p.Signal(syscall.SIGALRM)
 		case <-a.abort:
 			return
@@ -53,9 +52,7 @@ func (a Alarm) alarmAfter() {
 
 //Start the countdown till an alarm is raised
 func (a Alarm) Start() {
-	a.started.Add(1)
 	go a.alarmAfter()
-	a.started.Wait()
 }
 
 //Stop the countdown for the alarm
